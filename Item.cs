@@ -3,14 +3,14 @@ using UnityEngine;
 using UnityEngine.UI;
 using static UnityEngine.UI.Button;
 
-namespace MscSpawnMenu
+namespace MSCSpawnMenu
 {
     public class Item : MonoBehaviour
     {
-        public string text;
+        public string Text;
         void Start()
         {
-            gameObject.transform.Find("Text").GetComponent<Text>().text = text;
+            gameObject.transform.Find("Text").GetComponent<Text>().text = Text;
         }
         void Update()
         {

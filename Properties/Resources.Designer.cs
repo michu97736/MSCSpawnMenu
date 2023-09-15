@@ -8,7 +8,7 @@
 // </auto-generated>
 //------------------------------------------------------------------------------
 
-namespace MscSpawnMenu.Properties {
+namespace MSCSpawnMenu.Properties {
     using System;
     
     

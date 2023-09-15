@@ -1,7 +1,7 @@
 ﻿using MSCLoader;
 using UnityEngine;
 
-namespace MscSpawnMenu
+namespace MSCSpawnMenu
 {
     public class ItemManager : MonoBehaviour
     {
