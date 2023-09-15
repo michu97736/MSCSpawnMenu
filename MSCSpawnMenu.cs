@@ -1,15 +1,10 @@
 ﻿using System;
-using System.Collections;
 using System.Collections.Generic;
-using System.ComponentModel.Design;
-using System.Configuration;
-using System.IO;
-using System.Linq;
 using HutongGames.PlayMaker;
-using HutongGames.PlayMaker.Actions;
 using MSCLoader;
 using UnityEngine;
 using UnityEngine.UI;
+using Object = UnityEngine.Object;
 
 namespace MscSpawnMenu
 {
@@ -67,7 +62,7 @@ namespace MscSpawnMenu
         private void Mod_OnLoad()
         {
             AssetBundle bundle = AssetBundle.CreateFromMemoryImmediate(Properties.Resources.spawnmenu);
-            UI = GameObject.Instantiate(bundle.LoadAsset<GameObject>("SpawnMenuUI.prefab"));
+            UI = Object.Instantiate(bundle.LoadAsset<GameObject>("SpawnMenuUI.prefab"));
             Item = GameObject.Instantiate(bundle.LoadAsset<GameObject>("Item.prefab"));
             Item.AddComponent<Item>();
             List = new Dictionary<Dictionary<string, GameObject>, Categories>();
@@ -95,13 +90,13 @@ namespace MscSpawnMenu
             bundle.Unload(false);
         }
 
-        public void EditRagdoll(GameObject thisRagdoll, GameObject glassesPath, SkinnedMeshRenderer yourRagdollBodyMesh, bool UsesGlasses, bool changesBodymesh)
+        public void EditRagdoll(GameObject thisRagdoll, SkinnedMeshRenderer yourRagdollBodyMesh, bool changesBodymesh, bool UsesGlasses = false, GameObject glassesPath = null)
         {
 
             thisRagdoll.transform.Find("bodymesh").GetComponent<SkinnedMeshRenderer>().materials[0].mainTexture = yourRagdollBodyMesh.sharedMaterials[0].mainTexture;
             thisRagdoll.transform.Find("bodymesh").GetComponent<SkinnedMeshRenderer>().materials[1].mainTexture = yourRagdollBodyMesh.sharedMaterials[1].mainTexture;
             thisRagdoll.transform.Find("bodymesh").GetComponent<SkinnedMeshRenderer>().materials[2].mainTexture = yourRagdollBodyMesh.sharedMaterials[2].mainTexture;
-
+            
             if (UsesGlasses)
             {
                 GameObject glasses = GameObject.Instantiate(glassesPath).gameObject;
@@ -313,7 +308,7 @@ namespace MscSpawnMenu
             MSCItems.Add("Hammer", GameObject.Find("ITEMS/sledgehammer(itemx)"));
             //Fleetari
             GameObject fleetariragdoll = GameObject.Instantiate(humans.transform.Find("Julli/Pivot/RagDoll").gameObject);
-            EditRagdoll(fleetariragdoll, GameObject.Find("REPAIRSHOP").transform.Find("LOD/Office/Fleetari/Neighbour 2/skeleton/pelvis/spine_middle/spine_upper/HeadPivot/head/Shades/eye_glasses_regular").gameObject, GameObject.Find("REPAIRSHOP").transform.Find("LOD/Office/Fleetari/Neighbour 2/bodymesh").GetComponent<SkinnedMeshRenderer>(), true, false);
+            EditRagdoll(fleetariragdoll, GameObject.Find("REPAIRSHOP").transform.Find("LOD/Office/Fleetari/Neighbour 2/bodymesh").GetComponent<SkinnedMeshRenderer>(), true, false, GameObject.Find("REPAIRSHOP").transform.Find("LOD/Office/Fleetari/Neighbour 2/skeleton/pelvis/spine_middle/spine_upper/HeadPivot/head/Shades/eye_glasses_regular").gameObject);
             ModConsole.Print("Fleetari loaded");
             //Servant
             GameObject waterFacility;
@@ -325,23 +320,23 @@ namespace MscSpawnMenu
                     waterFacility = transform.gameObject;
 
                     servantRagdoll = GameObject.Instantiate(humans.transform.Find("Julli/Pivot/RagDoll").gameObject);
-                    EditRagdoll(servantRagdoll, waterFacility.transform.Find("LOD/Functions/Servant/Pivot/Shitman/skeleton/pelvis/spine_middle/spine_upper/HeadPivot/head/eye_glasses_regular").gameObject, waterFacility.transform.Find("LOD/Functions/Servant/Pivot/Shitman/bodymesh").GetComponent<SkinnedMeshRenderer>(), true, true);
+                    EditRagdoll(servantRagdoll, waterFacility.transform.Find("LOD/Functions/Servant/Pivot/Shitman/bodymesh").GetComponent<SkinnedMeshRenderer>(), true, true, waterFacility.transform.Find("LOD/Functions/Servant/Pivot/Shitman/skeleton/pelvis/spine_middle/spine_upper/HeadPivot/head/eye_glasses_regular").gameObject);
                 }
             }
             ModConsole.Print("Servant loaded");
             //Strawberrry guy
             GameObject berrymanragdoll = GameObject.Instantiate(humans.transform.Find("Julli/Pivot/RagDoll").gameObject);
-            EditRagdoll(berrymanragdoll, GameObject.Find("JOBS").transform.Find("StrawberryField/LOD/Functions/Berryman/Pivot/Berryman/skeleton/pelvis/spine_middle/spine_upper/HeadPivot/head/Accessories 1").gameObject, GameObject.Find("JOBS").transform.Find("StrawberryField/LOD/Functions/Berryman/Pivot/Berryman/bodymesh").GetComponent<SkinnedMeshRenderer>(), true, true);
+            EditRagdoll(berrymanragdoll, GameObject.Find("JOBS").transform.Find("StrawberryField/LOD/Functions/Berryman/Pivot/Berryman/bodymesh").GetComponent<SkinnedMeshRenderer>(), true, true, GameObject.Find("JOBS").transform.Find("StrawberryField/LOD/Functions/Berryman/Pivot/Berryman/skeleton/pelvis/spine_middle/spine_upper/HeadPivot/head/Accessories 1").gameObject);
             ModConsole.Print("Strawberry guy loaded");
             //Lindell
             GameObject lindellRagdoll = GameObject.Instantiate(humans.transform.Find("Julli/Pivot/RagDoll").gameObject);
-            EditRagdoll(lindellRagdoll,null,GameObject.Find("INSPECTION").transform.Find("LOD/Officer/Work/Char/bodymesh").GetComponent<SkinnedMeshRenderer>(), false,true);
+            EditRagdoll(lindellRagdoll,GameObject.Find("INSPECTION").transform.Find("LOD/Officer/Work/Char/bodymesh").GetComponent<SkinnedMeshRenderer>(), false,true, null);
             //Kuski
             GameObject kuskiRagdoll = GameObject.Instantiate(GameObject.Find("NPC_CARS").transform.Find("KUSKI/CrashEvent/RagDoll").gameObject);
             ModConsole.Print("kuski loaded");
             //Kuski's brother
             GameObject kuskiBrother = GameObject.Instantiate(humans.transform.Find("Julli/Pivot/RagDoll").gameObject);
-            EditRagdoll(kuskiBrother, GameObject.Find("NPC_CARS").transform.Find("KUSKI/Passenger/pelvis/spine_mid/shoulder/head/Cap 1").gameObject, GameObject.Find("NPC_CARS").transform.Find("KUSKI/Passenger/bodymesh").GetComponent<SkinnedMeshRenderer>(), true, true);
+            EditRagdoll(kuskiBrother, GameObject.Find("NPC_CARS").transform.Find("KUSKI/Passenger/bodymesh").GetComponent<SkinnedMeshRenderer>(), true, true, GameObject.Find("NPC_CARS").transform.Find("KUSKI/Passenger/pelvis/spine_mid/shoulder/head/Cap 1").gameObject);
             ModConsole.Print("kuski's brother loaded");
             MSCCharacters.Add("Kuski", kuskiRagdoll);
             MSCCharacters.Add("Fleetari", fleetariragdoll);
