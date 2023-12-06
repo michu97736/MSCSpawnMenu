@@ -1,5 +1,8 @@
 # MSCSpawnMenu
 Adds an user-friendly spawn menu to My Summer Car
+
+Do not reupload this mod anywhere else!
+I'm going to relaee this mod to more websites when I decide it's done.
 # Known issues
 - No thumbnails (yet)
 - Possible incompatibility with [MOP](https://github.com/Athlon007/MOP)
