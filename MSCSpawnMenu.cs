@@ -1,9 +1,13 @@
-﻿using System.Collections.Generic;
+﻿using System;
+using System.Collections.Generic;
 using System.Linq;
+using System.Reflection;
 using HutongGames.PlayMaker;
 using MSCLoader;
 using UnityEngine;
+using UnityEngine.SocialPlatforms;
 using UnityEngine.UI;
+using Object = UnityEngine.Object;
 using Resources = MSCSpawnMenu.Properties.Resources;
 
 namespace MSCSpawnMenu
@@ -19,17 +23,18 @@ namespace MSCSpawnMenu
         }
 
         public static Dictionary<Dictionary<string, GameObject>, Categories> List;
-        public string[] Blacklist = { "Use", "Chop" };
-        public GameObject Grid;
-        public RectTransform GridTransform;
-        public GameObject Item;
-        public int ItemsSpawned;
         public static Dictionary<string, GameObject> MscCharacters;
 
         public static Dictionary<string, GameObject> MscFurniture;
 
         //public string path = Path.GetFullPath("CustomSpawnMenuItems");
         public static Dictionary<string, GameObject> MscItems;
+        public static GameObject IconGen;
+        public string[] Blacklist = { "Use", "Chop" };
+        public GameObject Grid;
+        public RectTransform GridTransform;
+        public GameObject Item;
+        public int ItemsSpawned;
 
         public Keybind Open = new Keybind("openmenu", "Open the spawn menu", KeyCode.Y);
         public FsmBool PlayerInMenu;
@@ -39,7 +44,7 @@ namespace MSCSpawnMenu
         public override string ID => "MSCSpawnMenu";
         public override string Name => "Spawn Menu";
         public override string Author => "michu97736";
-        public override string Version => "1.0";
+        public override string Version => $"{Assembly.GetExecutingAssembly().GetName().Version.Major}.{Assembly.GetExecutingAssembly().GetName().Version.Minor}.{Assembly.GetExecutingAssembly().GetName().Version.Build}";
         public override string Description => "";
 
         public override void ModSetup()
@@ -48,6 +53,7 @@ namespace MSCSpawnMenu
             SetupFunction(Setup.ModSettings, Mod_Settings);
             SetupFunction(Setup.Update, Mod_Update);
             SetupFunction(Setup.OnMenuLoad, Mod_OnMenuLoad);
+            SetupFunction(Setup.OnSave, Mod_OnSave);
         }
 
         private void Mod_Settings() => Keybind.Add(this, Open);
@@ -68,18 +74,38 @@ namespace MSCSpawnMenu
                 null, false);
             Achievement.CreateAchievement("MSCSpawnMenu_500Items", ID, "Achievement Get!",
                 "You (somehow)spawned 500 items!", null, false);
-;        }
+            ;
+        }
 
         private void AlignGrid()
         {
             //gridTransform.position = new Vector3(gridTransform.position.x, gridTransform.rect.height / -2f, 0.0f);
         }
 
+        private void Search(string phrase)
+        {
+            ClearItems();
+
+            foreach (var category in List)
+            {
+                foreach (var item in category.Key)
+                {
+                    if (item.Key.IndexOf(phrase, 0, StringComparison.CurrentCultureIgnoreCase) != -1)
+                    {
+                        AddToView(new Dictionary<string, GameObject> { { item.Key, item.Value } });
+                    }
+                }
+            }
+        }
+
+
         private void Mod_OnLoad()
         {
             var bundle = AssetBundle.CreateFromMemoryImmediate(Resources.spawnmenu);
             Ui = Object.Instantiate(bundle.LoadAsset<GameObject>("SpawnMenuUI.prefab"));
             Item = Object.Instantiate(bundle.LoadAsset<GameObject>("Item.prefab"));
+            IconGen = Object.Instantiate(bundle.LoadAsset<GameObject>("ThumbnailGen.prefab"));
+            IconGen.AddComponent<ThumbnailGenerator>();
             Item.AddComponent<Item>();
             List = new Dictionary<Dictionary<string, GameObject>, Categories>();
             MscFurniture = new Dictionary<string, GameObject>();
@@ -103,13 +129,15 @@ namespace MSCSpawnMenu
                     ChangeCategory((Categories)int.Parse(transform1.name));
                 });
             }
+            Ui.transform.Find("Header/InputField").GetComponent<InputField>().onValueChange.AddListener(Search);
             Ui.SetActive(false);
             ItemsSpawned = SaveLoad.ReadValue<int>(this, "ItemsSpawned");
             RagdollsSpawned = SaveLoad.ReadValue<int>(this, "RagdollsSpawned");
             bundle.Unload(false);
         }
 
-        public void EditRagdoll(GameObject thisRagdoll, SkinnedMeshRenderer yourRagdollBodyMesh, bool changesBodymesh, bool usesGlasses, GameObject glassesPath)
+        public void EditRagdoll(GameObject thisRagdoll, SkinnedMeshRenderer yourRagdollBodyMesh, bool changesBodymesh,
+            bool usesGlasses, GameObject glassesPath)
         {
             thisRagdoll.transform.Find("bodymesh").GetComponent<SkinnedMeshRenderer>().materials[0].mainTexture =
                 yourRagdollBodyMesh.sharedMaterials[0].mainTexture;
@@ -123,7 +151,8 @@ namespace MSCSpawnMenu
                 thisRagdoll.transform.Find("bodymesh").GetComponent<SkinnedMeshRenderer>().sharedMesh =
                     yourRagdollBodyMesh.sharedMesh;
             }
-            if (usesGlasses == true && glassesPath != null)
+
+            if (usesGlasses && glassesPath != null)
             {
                 var glasses = Object.Instantiate(glassesPath);
                 glasses.transform.SetParent(thisRagdoll.transform.Find("pelvis/spine_mid/shoulders(xxxxx)/head"));
@@ -131,6 +160,7 @@ namespace MSCSpawnMenu
                 glasses.transform.localEulerAngles = glassesPath.transform.localEulerAngles;
                 glasses.name = "eye_glasses_regular";
             }
+
             thisRagdoll.name = "RagDoll";
 
 
@@ -195,7 +225,7 @@ namespace MSCSpawnMenu
             }
         }
 
-        public void ChangeCategory(Categories cat)
+        public void ChangeCategory(Categories cat = default, string search = "")
         {
             ClearItems();
 
@@ -218,6 +248,7 @@ namespace MSCSpawnMenu
             }
             //AlignGrid();
         }
+
         public void ClearItems()
         {
             foreach (Transform child in Grid.transform)
@@ -245,9 +276,11 @@ namespace MSCSpawnMenu
             foreach (var item in dict)
             {
                 var gameobjectitem = Object.Instantiate(Item);
-                gameobjectitem.GetComponent<Item>().Text = item.Key.ToUpper();
                 gameobjectitem.transform.Find("Button").GetComponent<Button>().onClick
                     .AddListener(() => SpawnItem(item));
+                gameobjectitem.GetComponent<Item>().Text = item.Key.ToUpper();
+                gameobjectitem.GetComponent<Item>().item = item.Value;
+                //gameobjectitem.GetComponent<Item>().Texture
                 gameobjectitem.transform.SetParent(Grid.transform);
                 gameobjectitem.transform.localScale = new Vector3(1, 1, 1);
             }
@@ -259,11 +292,11 @@ namespace MSCSpawnMenu
         {
             switch (cat)
             {
-                case Categories.Furniture: 
-                    MscFurniture.Add(itemName, gameObject); 
+                case Categories.Furniture:
+                    MscFurniture.Add(itemName, gameObject);
                     break;
                 case Categories.Other:
-                    MscItems.Add(itemName,gameObject);
+                    MscItems.Add(itemName, gameObject);
                     break;
                 case Categories.Ragdolls:
                     MscCharacters.Add(itemName, gameObject);
@@ -276,6 +309,7 @@ namespace MSCSpawnMenu
             var stuff = GameObject.Find("JOBS/HouseDrunk/").transform.Find("Moving/Stuff").gameObject;
             var otherstuff = GameObject.Find("JOBS/HouseDrunk").transform.Find("Moving/Stuff/DestroyThese").gameObject;
             MscFurniture.Add("TV table", stuff.transform.Find("table(Clo02)").gameObject);
+            ModConsole.Log(ID + ": Loading furniture");
             MscFurniture.Add("kitchen table", stuff.transform.Find("table(Clo03)").gameObject);
             MscFurniture.Add("bedside table", stuff.transform.Find("table(Clo04)").gameObject);
             MscFurniture.Add("coffee table", stuff.transform.Find("table(Clo05)").gameObject);
@@ -286,8 +320,9 @@ namespace MSCSpawnMenu
             MscFurniture.Add("desk", stuff.transform.Find("desk(Clo01)").gameObject);
             MscFurniture.Add("mattress", otherstuff.transform.Find("mattress(Clo02)").gameObject);
             MscFurniture.Add("box", otherstuff.transform.Find("box(Clo02)").gameObject);
-            var humans = GameObject.Find("HUMANS");
-            var jokke = GameObject.Find("JOBS/HouseDrunk").transform.Find("Moving").gameObject;
+            ModConsole.Log(ID + ": Loading ragdolls");
+            var humans = GameObject.Find("HUMANS").transform.Find("Randomizer/Walkers").gameObject;
+            var jokke = GameObject.Find("KILJUGUY/HikerPivot").transform.Find("JokkeHiker2").gameObject;
             var npccars = GameObject.Find("NPC_CARS");
             var kylajani = npccars.GetPlayMaker("Amis Setup").FsmVariables.GetFsmGameObject("Amikset").Value.transform
                 .Find("CrashEvent").gameObject;
@@ -303,25 +338,48 @@ namespace MSCSpawnMenu
             MscCharacters.Add("Unto", humans.transform.Find("Unto/Pivot/RagDoll").gameObject);
             MscCharacters.Add("Rauno", humans.transform.Find("Rauno/Pivot/RagDoll").gameObject);
             MscCharacters.Add("Alpo", humans.transform.Find("Alpo/Pivot/RagDoll").gameObject);
-            MscCharacters.Add("Tohvakka", humans.transform.Find("Farmer/Walker/RagDoll").gameObject);
-            MscCharacters.Add("Jokke", jokke.transform.Find("Hitcher/Pivot/RagDoll").gameObject);
+            MscCharacters.Add("Tohvakka", GameObject.Find("HUMANS/Farmer").transform.Find("Walker/RagDoll").gameObject);
+            MscCharacters.Add("Jokke", jokke.transform.Find("RagDoll").gameObject);
             MscCharacters.Add("Suski", kylajani.transform.GetChild(1).gameObject);
             MscCharacters.Add("Jani", kylajani.transform.GetChild(2).gameObject);
             MscCharacters.Add("Petteri", petteri.transform.GetChild(1).gameObject);
-            MscCharacters.Add("Teimo",
-                GameObject.Find("STORE/TeimoInBike/Bicycle").transform.Find("Functions/Teimo/RagDoll").gameObject);
+            MscCharacters.Add("Teimo", GameObject.Find("STORE/TeimoInBike/Bicycle").transform.Find("Functions/Teimo/RagDoll").gameObject);
             MscCharacters.Add("Latanen", latanen.transform.GetChild(3).gameObject);
-            MscCharacters.Add("Grandma",
-                GameObject.Find("ChurchGrandma/GrannyHiker").transform.Find("RagDoll2").gameObject);
+            MscCharacters.Add("Grandma", GameObject.Find("ChurchGrandma/GrannyHiker").transform.Find("RagDoll2").gameObject);
             MscCharacters.Add("Pena", pena.transform.Find("RagDoll").gameObject);
             GameObject sausages = null;
             GameObject moose = null;
+            GameObject foodTray = null;
+            GameObject Sausagesfries = null;
+            GameObject vodkaShot = null;
+            GameObject beerBottle = null;
+            ModConsole.Log(ID + ": Loading items");
             var arrayItems = UnityEngine.Resources.FindObjectsOfTypeAll<Transform>();
             foreach (var gameobject in arrayItems)
             {
                 if (gameobject.name == "sausages")
                 {
                     sausages = gameobject.gameObject;
+                }
+
+                if (gameobject.name == "tray")
+                {
+                    foodTray = gameobject.gameObject;
+                }
+
+                if (gameobject.name == "Sausage-Potatoes")
+                {
+                    Sausagesfries = gameobject.gameObject;
+                }
+
+                if (gameobject.name == "VodkaShot" && gameobject.hideFlags == HideFlags.HideInHierarchy)
+                {
+                    vodkaShot = gameobject.gameObject;
+                }
+
+                if (gameobject.name == "Beer" && gameobject.hideFlags == HideFlags.HideInHierarchy)
+                {
+                    beerBottle = gameobject.gameObject;
                 }
 
                 if (ModLoader.IsModPresent("MooseHunter"))
@@ -342,6 +400,10 @@ namespace MSCSpawnMenu
 
             MscCharacters.Add("Moose", moose);
             MscItems.Add("Sausages", sausages);
+            MscItems.Add("Food Tray", foodTray);
+            MscItems.Add("Sausage with fries", Sausagesfries);
+            MscItems.Add("Vodka shot", vodkaShot);
+            MscItems.Add("Beer bottle", beerBottle);
             MscItems.Add("Caravan", caravan);
             MscItems.Add("Garbage barrel", GameObject.Find("ITEMS/garbage barrel(itemx)"));
             var bicycle = Object.Instantiate(GameObject.Find("STORE/TeimoInBike/Bicycle").transform
@@ -351,20 +413,22 @@ namespace MSCSpawnMenu
             box.center = bicycle.transform.Find("coll").GetComponents<BoxCollider>()[0].center;
             bicycle.SetActive(false);
             MscItems.Add("Bicycle", bicycle);
-            var flashlight = Object.Instantiate(GameObject.Find("flashlight(itemx)"));
-            flashlight.name = "flashlight(spawnmenu)";
-            flashlight.transform.Find("ChangeBatteries/Insert").GetPlayMaker("Assembly").FsmVariables
-                .GetFsmInt("Batteries").Value = 4;
-            Object.Destroy(flashlight.transform.Find("FlashLight").GetPlayMaker("Charge"));
-            Object.Destroy(flashlight.transform.Find("Open"));
-            flashlight.transform.Find("FlashLight").GetComponent<Light>().intensity = 8;
-            flashlight.SetActive(false);
-            MscItems.Add("Flashlight", flashlight);
+            //var flashlight = Object.Instantiate(GameObject.Find("flashlight(itemx)"));
+            //flashlight.name = "flashlight(spawnmenu)";
+            //flashlight.transform.Find("ChangeBatteries/Insert").GetPlayMaker("Assembly").FsmVariables
+            //    .GetFsmInt("Batteries").Value = 4;
+            //Object.Destroy(flashlight.transform.Find("FlashLight").GetPlayMaker("Charge"));
+            //Object.Destroy(flashlight.transform.Find("Open"));
+            //flashlight.transform.Find("FlashLight").GetComponent<Light>().intensity = 8;
+            //flashlight.SetActive(false);
+            //MscItems.Add("Flashlight", flashlight);
             MscItems.Add("Ax", GameObject.Find("ITEMS/ax(itemx)"));
             MscItems.Add("Hammer", GameObject.Find("ITEMS/sledgehammer(itemx)"));
             //Fleetari
             var fleetariragdoll = Object.Instantiate(humans.transform.Find("Julli/Pivot/RagDoll").gameObject);
-            EditRagdoll(fleetariragdoll, GameObject.Find("REPAIRSHOP").transform.Find("LOD/Office/Fleetari/Neighbour 2/bodymesh").GetComponent<SkinnedMeshRenderer>(), true, true, GameObject.Find("REPAIRSHOP").transform.Find(
+            EditRagdoll(fleetariragdoll,
+                GameObject.Find("REPAIRSHOP").transform.Find("LOD/Office/Fleetari/Neighbour 2/bodymesh")
+                    .GetComponent<SkinnedMeshRenderer>(), true, true, GameObject.Find("REPAIRSHOP").transform.Find(
                         "LOD/Office/Fleetari/Neighbour 2/skeleton/pelvis/spine_middle/spine_upper/HeadPivot/head/Shades/eye_glasses_regular")
                     .gameObject);
             ModConsole.Print("Fleetari loaded");
@@ -399,7 +463,7 @@ namespace MSCSpawnMenu
                         "StrawberryField/LOD/Functions/Berryman/Pivot/Berryman/skeleton/pelvis/spine_middle/spine_upper/HeadPivot/head/Accessories 1")
                     .gameObject);
             ModConsole.Print("Strawberry guy loaded");
-            //Lindell
+            //Lindell   
             var lindellRagdoll = Object.Instantiate(humans.transform.Find("Julli/Pivot/RagDoll").gameObject);
             EditRagdoll(lindellRagdoll,
                 GameObject.Find("INSPECTION").transform.Find("LOD/Officer/Work/Char/bodymesh")

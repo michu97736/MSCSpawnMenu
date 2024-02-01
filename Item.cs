@@ -1,16 +1,17 @@
 ﻿using MSCLoader;
 using UnityEngine;
 using UnityEngine.UI;
-using static UnityEngine.UI.Button;
 
 namespace MSCSpawnMenu
 {
     public class Item : MonoBehaviour
     {
         public string Text;
-        void Start()
+        public GameObject item;
+        private void Start()
         {
             gameObject.transform.Find("Text").GetComponent<Text>().text = Text;
+            ThumbnailGenerator.instance.GenerateImage(item,gameObject.transform.Find("ItemImage").GetComponent<RawImage>());
         }
         void Update()
         {
