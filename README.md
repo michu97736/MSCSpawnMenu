@@ -7,4 +7,5 @@ I'm going to release this mod to more websites when I decide it's done.
 - No thumbnails (yet)
 - Possible incompatibility with [MOP](https://github.com/Athlon007/MOP)
 # Screenshots
-![mysummercar 2023-09-18 20-15-37](https://github.com/michu97736/MSCSpawnMenu/assets/78175369/ac8e865c-8cf1-45d8-a38d-c833d66da973)
+![image](https://github.com/michu97736/MSCSpawnMenu/assets/78175369/adcfdb04-a79f-4ba9-9ed0-ec9ba6724e92)
+
