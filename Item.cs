@@ -11,7 +11,6 @@ namespace MSCSpawnMenu
         private void Start()
         {
             gameObject.transform.Find("Text").GetComponent<Text>().text = Text;
-            ThumbnailGenerator.instance.GenerateImage(item,gameObject.transform.Find("ItemImage").GetComponent<RawImage>());
         }
         void Update()
         {

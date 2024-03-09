@@ -5,7 +5,6 @@ using System.Reflection;
 using HutongGames.PlayMaker;
 using MSCLoader;
 using UnityEngine;
-using UnityEngine.SocialPlatforms;
 using UnityEngine.UI;
 using Object = UnityEngine.Object;
 using Resources = MSCSpawnMenu.Properties.Resources;
@@ -24,11 +23,10 @@ namespace MSCSpawnMenu
 
         public static Dictionary<Dictionary<string, GameObject>, Categories> List;
         public static Dictionary<string, GameObject> MscCharacters;
-
         public static Dictionary<string, GameObject> MscFurniture;
-
         //public string path = Path.GetFullPath("CustomSpawnMenuItems");
         public static Dictionary<string, GameObject> MscItems;
+        public static Dictionary<string, Image> Icons;
         public static GameObject IconGen;
         public string[] Blacklist = { "Use", "Chop" };
         public GameObject Grid;
@@ -60,26 +58,23 @@ namespace MSCSpawnMenu
 
         private void Mod_OnMenuLoad()
         {
-            if (ModLoader.IsModPresent("AchievementCore"))
+            if (!ModLoader.IsModPresent("AchievementCore"))
+            {
+                return;
+            }
+            else
             {
                 Achievement.CreateAchievement("MSCSpawnMenu_FirstSpawn", ID, "Achievement Get!",
                     "You spawned your first item!", null, false);
+                Achievement.CreateAchievement("MSCSpawnMenu_150Ragdolls", ID, "Achievement Get!",
+                    "You spawned 150 ragdolls!", null, false);
+                Achievement.CreateAchievement("MSCSpawnMenu_500Ragdolls", ID, "Achievement Get!",
+                    "You (somehow) spawned 500 ragdolls!", null, false);
+                Achievement.CreateAchievement("MSCSpawnMenu_150Items", ID, "Achievement Get!", "You spawned 150 items!",
+                    null, false);
+                Achievement.CreateAchievement("MSCSpawnMenu_500Items", ID, "Achievement Get!",
+                    "You (somehow)spawned 500 items!", null, false);
             }
-
-            Achievement.CreateAchievement("MSCSpawnMenu_150Ragdolls", ID, "Achievement Get!",
-                "You spawned 150 ragdolls!", null, false);
-            Achievement.CreateAchievement("MSCSpawnMenu_500Ragdolls", ID, "Achievement Get!",
-                "You (somehow) spawned 500 ragdolls!", null, false);
-            Achievement.CreateAchievement("MSCSpawnMenu_150Items", ID, "Achievement Get!", "You spawned 150 items!",
-                null, false);
-            Achievement.CreateAchievement("MSCSpawnMenu_500Items", ID, "Achievement Get!",
-                "You (somehow)spawned 500 items!", null, false);
-            ;
-        }
-
-        private void AlignGrid()
-        {
-            //gridTransform.position = new Vector3(gridTransform.position.x, gridTransform.rect.height / -2f, 0.0f);
         }
 
         private void Search(string phrase)
@@ -129,6 +124,7 @@ namespace MSCSpawnMenu
                     ChangeCategory((Categories)int.Parse(transform1.name));
                 });
             }
+            //IconSetup();
             Ui.transform.Find("Header/InputField").GetComponent<InputField>().onValueChange.AddListener(Search);
             Ui.SetActive(false);
             ItemsSpawned = SaveLoad.ReadValue<int>(this, "ItemsSpawned");
@@ -197,10 +193,10 @@ namespace MSCSpawnMenu
                 RagdollsSpawned++;
                 switch (RagdollsSpawned)
                 {
-                    case 150:
+                    case int n when (n >= 150):
                         Achievement.TriggerAchievement("MSCSpawnMenu_150Ragdolls");
                         break;
-                    case 500:
+                    case int n when (n >= 500):
                         Achievement.TriggerAchievement("MSCSpawnMenu_500Ragdolls");
                         break;
                 }
@@ -210,10 +206,10 @@ namespace MSCSpawnMenu
                 ItemsSpawned++;
                 switch (ItemsSpawned)
                 {
-                    case 150:
+                    case int n when(n >=150):
                         Achievement.TriggerAchievement("MSCSpawnMenu_150Items");
                         break;
-                    case 500:
+                    case int n when (n >= 500):
                         Achievement.TriggerAchievement("MSCSpawnMenu_500Items");
                         break;
                 }
@@ -225,7 +221,7 @@ namespace MSCSpawnMenu
             }
         }
 
-        public void ChangeCategory(Categories cat = default, string search = "")
+        public void ChangeCategory(Categories cat = default)
         {
             ClearItems();
 
@@ -259,7 +255,7 @@ namespace MSCSpawnMenu
 
         public void OpenMenu()
         {
-            if (Ui.activeSelf != true)
+            if (!Ui.activeSelf)
             {
                 Ui.SetActive(true);
                 PlayerInMenu.Value = true;
@@ -280,7 +276,7 @@ namespace MSCSpawnMenu
                     .AddListener(() => SpawnItem(item));
                 gameobjectitem.GetComponent<Item>().Text = item.Key.ToUpper();
                 gameobjectitem.GetComponent<Item>().item = item.Value;
-                //gameobjectitem.GetComponent<Item>().Texture
+                //gameobjectitem.transform.Find("ItemImage").GetComponent<Image>().sprite = Icons[item.Key].sprite;
                 gameobjectitem.transform.SetParent(Grid.transform);
                 gameobjectitem.transform.localScale = new Vector3(1, 1, 1);
             }
@@ -497,6 +493,18 @@ namespace MSCSpawnMenu
             //}
         }
 
+        private void IconSetup()
+        {
+            foreach (var list in List)
+            {
+                foreach (var innerlist in list.Key)
+                {
+                    GameObject gameObject = innerlist.Value;
+                    Image image = IconGen.GetComponent<ThumbnailGenerator>().GenerateImage(gameObject);
+                    Icons.Add(innerlist.Key,image);
+                }
+            }
+        }
         private void Mod_Update()
         {
             if (Open.GetKeybindDown())
